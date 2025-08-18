@@ -1,0 +1,107 @@
+# Sensitive Data - NEVER COMMIT
+*.json.bak
+*.backup
+wallets.json
+wallets.encrypted
+crypto_portfolio_*
+portfolio_backup_*
+salt.bin
+*.key
+*.pem
+*.p12
+*.pfx
+
+# User Data & Storage
+localStorage/
+sessionStorage/
+indexedDB/
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment & Configuration
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+.env.*.local
+config.json
+settings.json
+user-data/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.npm
+.eslintcache
+.node_repl_history
+*.tgz
+.yarn-integrity
+
+# NPM Cache
+npm-cache/
+.cache/
+
+# OS Generated Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.tmp
+*.temp
+
+# IDE & Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.settings/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Runtime Data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage & Testing
+coverage/
+.nyc_output/
+.coverage/
+
+# Electron Build Output
+dist/
+build/
+out/
+
+# Temporary Files
+tmp/
+temp/
+
+# Personal Information (add any other patterns you use)
+*personal*
+*private*
+*secret*
+*wallet*
+*portfolio*
+*.portfolio
+test-buttons.html
+browser-test.html
+simple.html
+minimal-test.html

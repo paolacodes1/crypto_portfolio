@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Portfolio Manager - Simple Version</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Price Ticker -->
+        <header id="price-ticker" class="price-ticker">
+            <div class="ticker-container">
+                <div class="ticker-item" data-token="BTC">
+                    <span class="token-name">BTC</span>
+                    <span class="token-price">$0.00</span>
+                    <span class="token-change">0.00%</span>
+                </div>
+                <div class="ticker-item" data-token="WBTC">
+                    <span class="token-name">WBTC</span>
+                    <span class="token-price">$0.00</span>
+                    <span class="token-change">0.00%</span>
+                </div>
+                <div class="ticker-item" data-token="ETH">
+                    <span class="token-name">ETH</span>
+                    <span class="token-price">$0.00</span>
+                    <span class="token-change">0.00%</span>
+                </div>
+                <div class="ticker-item" data-token="WETH">
+                    <span class="token-name">WETH</span>
+                    <span class="token-price">$0.00</span>
+                    <span class="token-change">0.00%</span>
+                </div>
+                <div class="ticker-item" data-token="SOL">
+                    <span class="token-name">SOL</span>
+                    <span class="token-price">$0.00</span>
+                    <span class="token-change">0.00%</span>
+                </div>
+                <div class="ticker-item" data-token="LINK">
+                    <span class="token-name">LINK</span>
+                    <span class="token-price">$0.00</span>
+                    <span class="token-change">0.00%</span>
+                </div>
+                <div class="ticker-item" data-token="AAVE">
+                    <span class="token-name">AAVE</span>
+                    <span class="token-price">$0.00</span>
+                    <span class="token-change">0.00%</span>
+                </div>
+                <div class="ticker-item" data-token="EVA">
+                    <span class="token-name">EVA</span>
+                    <span class="token-price">$0.00</span>
+                    <span class="token-change">0.00%</span>
+                </div>
+                <div class="ticker-item" data-token="USDC">
+                    <span class="token-name">USDC</span>
+                    <span class="token-price">$0.00</span>
+                    <span class="token-change">0.00%</span>
+                </div>
+                <div class="ticker-item" data-token="USDT">
+                    <span class="token-name">USDT</span>
+                    <span class="token-price">$0.00</span>
+                    <span class="token-change">0.00%</span>
+                </div>
+                <div class="ticker-item" data-token="DAI">
+                    <span class="token-name">DAI</span>
+                    <span class="token-price">$0.00</span>
+                    <span class="token-change">0.00%</span>
+                </div>
+                <div class="last-updated">
+                    Last updated: <span id="last-updated-time">Never</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation -->
+        <nav id="navigation" class="nav-bar">
+            <div class="nav-container">
+                <div class="nav-left">
+                    <h1 class="app-title">Portfolio Manager</h1>
+                </div>
+                <div class="nav-center">
+                    <button class="nav-btn active" data-view="dashboard">Dashboard</button>
+                    <button class="nav-btn" data-view="transactions">Transactions</button>
+                    <button class="nav-btn" data-view="analytics">Analytics</button>
+                </div>
+                <div class="nav-right">
+                    <button id="new-wallet-btn" class="btn btn-primary">+ New Wallet</button>
+                    <button id="refresh-btn" class="btn btn-secondary">Refresh</button>
+                    <button id="backup-btn" class="btn btn-secondary">Backup</button>
+                    <button id="security-btn" class="btn btn-secondary">Security</button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main id="main-content" class="main-content">
+            <!-- Dashboard View -->
+            <div id="dashboard-view" class="view active">
+                <div class="view-header">
+                    <h2>Portfolio Dashboard</h2>
+                    <div class="portfolio-summary">
+                        <div class="summary-item">
+                            <span class="summary-label">Total Portfolio Value</span>
+                            <span id="total-portfolio-value" class="summary-value">$0.00</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">24h Change</span>
+                            <span id="portfolio-24h-change" class="summary-value">$0.00 (0.00%)</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Total Wallets</span>
+                            <span id="total-wallets" class="summary-value">0</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="dashboard-content">
+                    <div class="wallets-table-container">
+                        <table id="wallets-table" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th class="sortable" data-sort="name">Wallet Name</th>
+                                    <th class="sortable" data-sort="type">Type</th>
+                                    <th class="sortable" data-sort="blockchain">Blockchain</th>
+                                    <th class="sortable col-currency" data-sort="initial_investment">Initial Investment</th>
+                                    <th class="sortable col-currency" data-sort="current_value">Current Value</th>
+                                    <th class="sortable col-currency" data-sort="pnl">P&L</th>
+                                    <th class="sortable col-percentage" data-sort="pnl_percentage">P&L %</th>
+                                    <th class="sortable col-date" data-sort="last_updated">Last Updated</th>
+                                    <th class="col-actions">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="empty-state">
+                                    <td colspan="9">
+                                        <div class="empty-message">
+                                            <p>No wallets found. Create your first wallet to get started.</p>
+                                            <button class="btn btn-primary" disabled>Create Wallet</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Other Views -->
+
+            <div id="transactions-view" class="view">
+                <div class="view-header">
+                    <h2>Transaction History</h2>
+                </div>
+                <div class="transactions-content">
+                    <p>Transaction tracking coming in Phase 4.</p>
+                </div>
+            </div>
+
+            <div id="analytics-view" class="view">
+                <div class="view-header">
+                    <h2>Portfolio Analytics</h2>
+                </div>
+                <div class="analytics-content">
+                    <p>Advanced analytics coming in Phase 5.</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- Simple Wallet Modal -->
+        <div id="wallet-wizard-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Create New Wallet</h3>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="wallet-wizard-content">
+                        <!-- Content will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transaction Entry Modal -->
+        <div id="transaction-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Add Transaction</h3>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="transaction-content">
+                        <!-- Transaction form will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Wallet Detail Modal -->
+        <div id="wallet-detail-modal" class="modal">
+            <div class="modal-content large-modal">
+                <div class="modal-header">
+                    <h3 id="wallet-detail-title">Wallet Details</h3>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="wallet-detail-content">
+                        <!-- Wallet detail content will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Security Settings Modal -->
+        <div id="security-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Security Settings</h3>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="security-content">
+                        <!-- Security content will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Custom Input Modal -->
+        <div id="input-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="input-modal-title">Input Required</h3>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="input-modal-content">
+                        <p id="input-modal-message">Please enter a value:</p>
+                        <input type="text" id="input-modal-field" class="form-input" placeholder="">
+                        <div class="modal-buttons">
+                            <button id="input-modal-cancel" class="btn btn-secondary">Cancel</button>
+                            <button id="input-modal-ok" class="btn btn-primary">OK</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Custom Confirmation Modal -->
+        <div id="confirm-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="confirm-modal-title">Confirm Action</h3>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="confirm-modal-content">
+                        <p id="confirm-modal-message">Are you sure?</p>
+                        <div class="modal-buttons">
+                            <button id="confirm-modal-cancel" class="btn btn-secondary">Cancel</button>
+                            <button id="confirm-modal-ok" class="btn btn-danger">Delete</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Simple Working Script -->
+    <script src="js/simple-app.js"></script>
+    <script>
+        // Safety check to ensure simpleApp is available
+        window.addEventListener('load', () => {
+            console.log('Window loaded, simpleApp available:', !!window.simpleApp);
+            if (!window.simpleApp) {
+                console.error('simpleApp not loaded! Check file path and script loading.');
+            }
+        });
+    </script>
+</body>
+</html>
