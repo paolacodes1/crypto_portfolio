@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://api.coingecko.com https://api.coinmarketcap.com;">
     <title>Crypto Portfolio Manager - Simple Version</title>
     <link rel="stylesheet" href="css/styles.css">
 </head>
@@ -80,11 +81,12 @@
                 </div>
                 <div class="nav-center">
                     <button class="nav-btn active" data-view="dashboard">Dashboard</button>
-                    <button class="nav-btn" data-view="transactions">Transactions</button>
+                    <button class="nav-btn" data-view="dca">DCA</button>
                     <button class="nav-btn" data-view="analytics">Analytics</button>
                 </div>
                 <div class="nav-right">
                     <button id="new-wallet-btn" class="btn btn-primary">+ New Wallet</button>
+                    <button id="borrowed-money-btn" class="btn btn-secondary">Borrowed Money</button>
                     <button id="refresh-btn" class="btn btn-secondary">Refresh</button>
                     <button id="backup-btn" class="btn btn-secondary">Backup</button>
                     <button id="security-btn" class="btn btn-secondary">Security</button>
@@ -100,12 +102,24 @@
                     <h2>Portfolio Dashboard</h2>
                     <div class="portfolio-summary">
                         <div class="summary-item">
-                            <span class="summary-label">Total Portfolio Value</span>
+                            <span class="summary-label">Net Portfolio Value</span>
                             <span id="total-portfolio-value" class="summary-value">$0.00</span>
                         </div>
                         <div class="summary-item">
-                            <span class="summary-label">24h Change</span>
+                            <span class="summary-label">True Gain</span>
                             <span id="portfolio-24h-change" class="summary-value">$0.00 (0.00%)</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Total Assets</span>
+                            <span id="total-assets" class="summary-value">$0.00</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Total Liabilities</span>
+                            <span id="total-liabilities" class="summary-value">$0.00</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Borrowed Money Used</span>
+                            <span id="borrow-usage" class="summary-value editable" onclick="simpleApp.editBorrowUsage()">$0.00</span>
                         </div>
                         <div class="summary-item">
                             <span class="summary-label">Total Wallets</span>
@@ -127,7 +141,7 @@
                                     <th class="sortable col-currency" data-sort="pnl">P&L</th>
                                     <th class="sortable col-percentage" data-sort="pnl_percentage">P&L %</th>
                                     <th class="sortable col-date" data-sort="last_updated">Last Updated</th>
-                                    <th class="col-actions">Actions</th>
+                                    <th>Details</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -147,12 +161,15 @@
 
             <!-- Other Views -->
 
-            <div id="transactions-view" class="view">
+            <div id="dca-view" class="view">
                 <div class="view-header">
-                    <h2>Transaction History</h2>
+                    <h2>Dollar Cost Averaging (DCA)</h2>
+                    <p class="view-subtitle">Your average entry prices across all wallets</p>
                 </div>
-                <div class="transactions-content">
-                    <p>Transaction tracking coming in Phase 4.</p>
+                <div class="dca-content">
+                    <div id="dca-table-container">
+                        <!-- DCA table will be populated here -->
+                    </div>
                 </div>
             </div>
 
@@ -260,6 +277,51 @@
                             <button id="confirm-modal-cancel" class="btn btn-secondary">Cancel</button>
                             <button id="confirm-modal-ok" class="btn btn-danger">Delete</button>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Position Modal -->
+        <div id="add-position-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="add-position-title">Add Position</h3>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="add-position-content">
+                        <!-- Content will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Investment History Modal -->
+        <div id="investment-history-modal" class="modal">
+            <div class="modal-content large-modal">
+                <div class="modal-header">
+                    <h3>Investment History</h3>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="investment-history-content">
+                        <!-- Content will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Borrowed Money Used Modal -->
+        <div id="borrowed-money-modal" class="modal">
+            <div class="modal-content large-modal">
+                <div class="modal-header">
+                    <h3>Borrowed Money Used</h3>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="borrowed-money-content">
+                        <!-- Content will be populated by JavaScript -->
                     </div>
                 </div>
             </div>

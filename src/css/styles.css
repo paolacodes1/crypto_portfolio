@@ -318,10 +318,29 @@ body {
     border-right: 1px solid #4a5568;
     border-bottom: 1px solid #4a5568;
     position: relative;
+}
+
+/* Default cell styling with ellipsis */
+.data-table td {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 200px;
+}
+
+/* Allow badge columns to wrap and expand */
+.data-table td:nth-child(2), /* Type column */
+.data-table td:nth-child(3) { /* Blockchain column */
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+    max-width: none;
+    min-width: 150px;
+}
+
+/* Header cells don't need overflow constraints */
+.data-table th {
+    white-space: nowrap;
 }
 
 .data-table th:last-child,
@@ -793,9 +812,9 @@ body {
 }
 
 .modal.active {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
 }
 
 @keyframes fadeIn {
@@ -807,11 +826,19 @@ body {
     background-color: #2d3748;
     border-radius: 8px;
     border: 1px solid #4a5568;
-    max-width: 600px;
-    width: 90%;
-    max-height: 80vh;
+    max-width: 900px;
+    width: 95%;
+    max-height: 90vh;
     overflow-y: auto;
     animation: slideIn 0.3s;
+}
+
+/* Larger modal for wallet wizard */
+#wallet-wizard-modal .modal-content {
+    max-width: 1100px !important;
+    width: 98% !important;
+    max-height: 95vh !important;
+    min-width: 800px !important;
 }
 
 @keyframes slideIn {
@@ -1152,6 +1179,326 @@ body {
     margin-bottom: 32px;
 }
 
+.breakdown-section {
+    margin-top: 40px;
+    margin-bottom: 40px;
+}
+
+.breakdown-section h3 {
+    margin-bottom: 20px;
+    color: #ffffff;
+    font-size: 1.4rem;
+}
+
+.risk-section {
+    margin-top: 40px;
+    padding-top: 30px;
+    border-top: 1px solid #4a5568;
+}
+
+.risk-section h3 {
+    margin-bottom: 20px;
+    color: #ffffff;
+    font-size: 1.4rem;
+}
+
+.summary-value.editable {
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.summary-value.editable:hover {
+    background-color: #4a5568;
+    text-decoration: underline;
+}
+
+.editable-cell {
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.editable-cell:hover {
+    background-color: #4a5568;
+    text-decoration: underline;
+}
+
+/* Net Worth Summary Tables */
+.net-worth-summary {
+    margin-top: 16px;
+    padding: 12px;
+    background: #1a202c;
+    border-radius: 6px;
+    border: 1px solid #4a5568;
+}
+
+.summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.summary-table td {
+    padding: 6px 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    white-space: nowrap;
+}
+
+.summary-table td:first-child {
+    text-align: left;
+    color: #a0aec0;
+}
+
+.summary-table td:last-child {
+    text-align: right;
+    color: #e2e8f0;
+    font-weight: 500;
+}
+
+.summary-table .negative {
+    color: #fc8181 !important;
+}
+
+.summary-table .net-worth-row td {
+    padding-top: 8px;
+    border-top: 1px solid #4a5568;
+    font-weight: 600 !important;
+}
+
+/* Pool table specific styling to prevent header overlap */
+.excel-table {
+    table-layout: fixed; /* Force column widths to be respected */
+}
+
+.excel-table th:nth-child(1) { width: 12%; } /* PROTOCOL */
+.excel-table th:nth-child(2) { width: 10%; } /* TOKEN A */
+.excel-table th:nth-child(3) { width: 15%; } /* AMOUNT A */
+.excel-table th:nth-child(4) { width: 10%; } /* TOKEN B */
+.excel-table th:nth-child(5) { width: 15%; } /* AMOUNT B */
+.excel-table th:nth-child(6) { width: 15%; } /* POOL VALUE */
+.excel-table th:nth-child(7) { width: 23%; } /* UNCOLLECTED FEES - wider for longer header */
+
+.excel-table th,
+.excel-table td {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 4px 8px; /* Slightly more padding */
+}
+
+/* Token Details Modal */
+.token-details {
+    max-width: 600px;
+}
+
+.token-summary {
+    margin-bottom: 24px;
+    padding: 16px;
+    background: #2d3748;
+    border-radius: 8px;
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.summary-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.summary-item label {
+    color: #a0aec0;
+    font-weight: 500;
+}
+
+.summary-item span {
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.token-breakdown h4 {
+    color: #e2e8f0;
+    margin-bottom: 12px;
+}
+
+.breakdown-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+.breakdown-table th,
+.breakdown-table td {
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid #4a5568;
+}
+
+.breakdown-table th {
+    background: #2d3748;
+    color: #e2e8f0;
+    font-weight: 600;
+}
+
+.breakdown-table .dca-affecting {
+    color: #48bb78;
+    font-weight: 500;
+}
+
+.breakdown-table .gain {
+    color: #ed8936;
+    font-weight: 500;
+}
+
+.summary-value.positive {
+    color: #48bb78;
+    font-weight: 600;
+}
+
+.summary-value.negative {
+    color: #f56565;
+    font-weight: 600;
+}
+
+.chart-section {
+    margin-top: 40px;
+    padding-top: 30px;
+    border-top: 1px solid #4a5568;
+}
+
+.chart-section h3 {
+    margin-bottom: 20px;
+    color: #ffffff;
+    font-size: 1.4rem;
+    text-align: center;
+}
+
+.chart-legend {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin-bottom: 20px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.legend-item.assets {
+    color: #48bb78;
+}
+
+.legend-item.liabilities {
+    color: #f56565;
+}
+
+.legend-item.gain {
+    color: #4299e1;
+}
+
+.legend-item::before {
+    content: '';
+    display: inline-block;
+    width: 20px;
+    height: 2px;
+    margin-right: 8px;
+    background-color: currentColor;
+}
+
+.chart-filters {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.chart-filter-btn {
+    background: #2d3748;
+    border: 1px solid #4a5568;
+    color: #a0aec0;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.chart-filter-btn:hover {
+    background: #4a5568;
+    color: #ffffff;
+}
+
+.chart-filter-btn.active {
+    background: #4299e1;
+    color: #ffffff;
+    border-color: #4299e1;
+}
+
+.wallet-section {
+    margin-bottom: 30px;
+}
+
+.section-header h4 {
+    margin-bottom: 15px;
+    color: #ffffff;
+    font-size: 1.2rem;
+    border-bottom: 1px solid #4a5568;
+    padding-bottom: 8px;
+}
+
+.position-type-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.position-type-badge.supply {
+    background: #065f46;
+    color: #6ee7b7;
+}
+
+.position-type-badge.borrow {
+    background: #7c2d12;
+    color: #fca5a5;
+}
+
+.positions-table {
+    overflow-x: auto;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    background: #2d3748;
+    border-radius: 8px;
+    border: 1px solid #4a5568;
+}
+
+.empty-state h4 {
+    color: #a0aec0;
+    margin-bottom: 10px;
+}
+
+.empty-state p {
+    color: #718096;
+}
+
 .metric-card {
     background: #2d3748;
     border: 1px solid #4a5568;
@@ -1337,6 +1684,20 @@ body {
     font-size: 14px;
 }
 
+.backup-actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.backup-info {
+    font-size: 12px;
+    color: #718096;
+    margin-top: 5px;
+    font-style: italic;
+}
+
 .backup-warning {
     background: #744210;
     border: 1px solid #d69e2e;
@@ -1400,6 +1761,13 @@ body {
     outline: none;
     border-color: #4299e1;
     box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+}
+
+/* Specific styling for password inputs to ensure visibility */
+input[type="password"].form-input {
+    background-color: #1a202c !important;
+    color: #ffffff !important;
+    -webkit-text-security: disc;
 }
 
 .form-textarea {
@@ -1997,6 +2365,27 @@ body {
     gap: 16px;
 }
 
+/* Purchase Date Styling */
+.holding-date, .aave-date, .pool-date {
+    font-size: 12px;
+    color: #a0aec0;
+    font-style: italic;
+    display: block;
+    margin-top: 4px;
+}
+
+.holding-info .holding-date {
+    margin-left: 0;
+}
+
+.aave-info .aave-date {
+    margin-left: 0;
+}
+
+.pool-info .pool-date {
+    margin-left: 0;
+}
+
 .stat-card {
     background: #1a202c;
     border: 1px solid #4a5568;
@@ -2143,4 +2532,766 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
     background: #718096;
+}
+/* Add button grid for wallet detail modal */
+.add-buttons-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.add-buttons-grid .btn {
+    padding: 12px 20px;
+    font-size: 14px;
+    text-align: center;
+}
+
+/* Wallet Detail Modal - Multi-blockchain Support */
+.blockchain-badges {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    border: 1px solid #4a5568;
+}
+
+.blockchain-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    margin: 0 8px 0 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.blockchain-badge[data-blockchain="ethereum"] {
+    background: linear-gradient(135deg, #627eea 0%, #5a67d8 100%);
+}
+
+.blockchain-badge[data-blockchain="bitcoin"] {
+    background: linear-gradient(135deg, #f7931a 0%, #e67e22 100%);
+}
+
+.blockchain-badge[data-blockchain="solana"] {
+    background: linear-gradient(135deg, #9945ff 0%, #14f195 100%);
+}
+
+.blockchain-badge[data-blockchain="polygon"] {
+    background: linear-gradient(135deg, #8247e5 0%, #3b82f6 100%);
+}
+
+.blockchain-badge[data-blockchain="arbitrum"] {
+    background: linear-gradient(135deg, #28a0f0 0%, #1e40af 100%);
+}
+
+.blockchain-badge[data-blockchain="base"] {
+    background: linear-gradient(135deg, #0052ff 0%, #0066cc 100%);
+}
+
+/* Multiple badges in table cells */
+.wallet-type-badge + .wallet-type-badge,
+.blockchain-badge + .blockchain-badge {
+    margin-left: 6px;
+}
+
+/* Ensure badge containers don't overflow */
+td .wallet-type-badge,
+td .blockchain-badge {
+    display: inline-block;
+    margin: 2px 3px 2px 0;
+    white-space: nowrap;
+}
+
+/* Allow wrapping in cells with multiple badges */
+td {
+    white-space: normal;
+    word-wrap: break-word;
+}
+
+.wallet-type-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    margin: 2px 0;
+    background: linear-gradient(135deg, #38b2ac 0%, #319795 100%);
+    color: white;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.aggregated-values {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.value-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 6px;
+    border: 1px solid #4a5568;
+}
+
+.value-item .label {
+    font-weight: 500;
+    color: #a0aec0;
+}
+
+.value-item .value {
+    font-weight: 600;
+    font-size: 16px;
+}
+
+.wallet-summary {
+    margin-bottom: 20px;
+}
+
+/* Overview sections */
+.overview-section, .tokens-overview {
+    margin-top: 25px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    border: 1px solid #4a5568;
+}
+
+.overview-section h4, .tokens-overview h4 {
+    margin-bottom: 15px;
+    color: #e2e8f0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.balance-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.balance-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 4px;
+}
+
+.balance-item.assets .label::before {
+    content: "📈 ";
+}
+
+.balance-item.liabilities .label::before {
+    content: "📉 ";
+}
+
+.balance-item.net .label::before {
+    content: "💰 ";
+}
+
+.token-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.token-item {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 15px;
+    align-items: center;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.token-name {
+    font-weight: 600;
+    color: #cbd5e0;
+}
+
+.token-balance {
+    font-family: 'Courier New', monospace;
+    color: #a0aec0;
+    font-size: 14px;
+}
+
+.token-value {
+    font-weight: 600;
+    color: #68d391;
+    text-align: right;
+}
+
+.value.positive {
+    color: #68d391;
+}
+
+.value.negative {
+    color: #fc8181;
+}
+
+/* Expandable wallet details */
+.expand-btn {
+    background: none;
+    border: 1px solid #4a5568;
+    color: #a0aec0;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    transition: all 0.2s;
+}
+
+.expand-btn:hover {
+    background-color: #2d3748;
+    color: #ffffff;
+}
+
+.wallet-details-row {
+    background-color: #1a202c;
+}
+
+.wallet-details-content {
+    padding: 20px;
+    border-top: 1px solid #4a5568;
+}
+
+.details-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+}
+
+@media (min-width: 768px) {
+    .details-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (min-width: 1024px) {
+    .details-grid {
+        grid-template-columns: 1fr 1fr 1fr;
+    }
+}
+
+.details-section {
+    background-color: #2d3748;
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.details-section h4 {
+    color: #e2e8f0;
+    margin-bottom: 12px;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.details-section h5 {
+    color: #cbd5e0;
+    margin-bottom: 8px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.details-section h6 {
+    color: #a0aec0;
+    margin-bottom: 6px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.details-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 12px;
+}
+
+.details-table th,
+.details-table td {
+    padding: 8px;
+    text-align: left;
+    border-bottom: 1px solid #4a5568;
+    font-size: 13px;
+}
+
+.details-table th {
+    color: #cbd5e0;
+    font-weight: 500;
+    background-color: #1a202c;
+}
+
+.details-table td {
+    color: #e2e8f0;
+}
+
+.mini-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.mini-table th,
+.mini-table td {
+    padding: 4px 8px;
+    text-align: left;
+    border-bottom: 1px solid #4a5568;
+}
+
+.mini-table th {
+    color: #a0aec0;
+    font-weight: 500;
+}
+
+.mini-table td {
+    color: #e2e8f0;
+}
+
+.comparison-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.comparison-side {
+    background-color: #1a202c;
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px solid #4a5568;
+}
+
+.investment-amount {
+    font-size: 18px;
+    font-weight: 600;
+    color: #68d391;
+    margin: 8px 0;
+}
+
+.investment-entries {
+    font-size: 12px;
+    color: #a0aec0;
+}
+
+.empty-message {
+    color: #a0aec0;
+    font-style: italic;
+    padding: 12px 0;
+    text-align: center;
+}
+
+.btn-xs {
+    padding: 2px 6px;
+    font-size: 11px;
+    border-radius: 3px;
+}
+
+.btn-sm {
+    padding: 4px 8px;
+    font-size: 12px;
+}
+
+@media (max-width: 768px) {
+    .comparison-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .details-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Excel-style layout */
+.excel-style-details {
+    padding: 0;
+}
+
+.summary-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #1a202c;
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+    border: 1px solid #4a5568;
+}
+
+.investment-input {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.investment-input label {
+    color: #cbd5e0;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.investment-input-field {
+    background-color: #2d3748;
+    border: 1px solid #4a5568;
+    color: #e2e8f0;
+    padding: 6px 8px;
+    border-radius: 4px;
+    width: 100px;
+    font-size: 13px;
+}
+
+.investment-input-field:focus {
+    outline: none;
+    border-color: #63b3ed;
+    background-color: #1a202c;
+}
+
+.pnl-display {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+}
+
+.current-value {
+    color: #e2e8f0;
+    font-weight: 600;
+    font-size: 16px;
+}
+
+.pnl-amount {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.pnl-amount.positive {
+    color: #68d391;
+}
+
+.pnl-amount.negative {
+    color: #fc8181;
+}
+
+.excel-layout {
+    display: flex;
+    gap: 20px;
+    width: 100%;
+}
+
+.excel-current, .excel-initial {
+    background-color: #2d3748;
+    border-radius: 8px;
+    padding: 16px;
+    flex: 1;
+    min-width: 0; /* Allow flex items to shrink below content size */
+}
+
+.portfolio-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #4a5568;
+}
+
+.portfolio-header h4 {
+    color: #e2e8f0;
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.edit-portfolio-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+.excel-current h4, .excel-initial h4 {
+    color: #e2e8f0;
+    margin-bottom: 16px;
+    font-size: 18px;
+    font-weight: 600;
+    text-align: center;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #4a5568;
+}
+
+.position-section {
+    margin-bottom: 20px;
+}
+
+.position-section h5 {
+    color: #cbd5e0;
+    margin-bottom: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    background-color: #1a202c;
+    padding: 6px 10px;
+    border-radius: 4px;
+    border-left: 3px solid #63b3ed;
+}
+
+.excel-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    margin-bottom: 8px;
+}
+
+.excel-table th,
+.excel-table td {
+    padding: 4px 6px;
+    text-align: left;
+    border-bottom: 1px solid #4a5568;
+}
+
+.excel-table th {
+    color: #a0aec0;
+    font-weight: 500;
+    background-color: #1a202c;
+    font-size: 11px;
+}
+
+.excel-table td {
+    color: #e2e8f0;
+    font-size: 11px;
+}
+
+.excel-table tr:hover {
+    background-color: #1a202c;
+}
+
+.empty-section {
+    color: #a0aec0;
+    font-style: italic;
+    text-align: center;
+    padding: 12px;
+    background-color: #1a202c;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.add-buttons-section {
+    margin-top: 16px;
+    text-align: center;
+    padding: 12px;
+    background-color: #1a202c;
+    border-radius: 6px;
+    border: 1px dashed #4a5568;
+}
+
+.add-buttons-section .btn {
+    margin: 0 4px;
+}
+
+.wallet-actions-section {
+    margin-top: 16px;
+    text-align: center;
+    padding: 12px;
+    background-color: #1a202c;
+    border-radius: 6px;
+    border: 1px solid #4a5568;
+}
+
+.initial-positions-editor {
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.form-section {
+    margin-bottom: 20px;
+    padding: 12px;
+    background-color: #2d3748;
+    border-radius: 6px;
+}
+
+.form-section h4 {
+    color: #e2e8f0;
+    margin-bottom: 12px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.initial-position-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px;
+    margin-bottom: 4px;
+    background-color: #1a202c;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.initial-position-item span {
+    color: #e2e8f0;
+}
+
+@media (max-width: 600px) {
+    .excel-layout {
+        flex-direction: column;
+    }
+    
+    .summary-section {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+    
+    .pnl-display {
+        align-items: center;
+    }
+}
+
+/* Borrowed Money Modal Styles */
+.borrowed-money-manager {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.borrowed-money-manager .summary-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #1a202c;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 24px;
+    border: 1px solid #4a5568;
+}
+
+.borrowed-money-manager .current-total h4 {
+    color: #cbd5e0;
+    margin-bottom: 8px;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.borrowed-money-manager .total-amount {
+    font-size: 28px;
+    font-weight: 700;
+    color: #68d391;
+    margin-bottom: 4px;
+}
+
+.borrowed-money-manager .total-description {
+    color: #a0aec0;
+    font-size: 13px;
+    margin: 0;
+}
+
+.borrowed-money-manager .quick-add {
+    flex-shrink: 0;
+}
+
+.borrowed-money-manager .history-section h4 {
+    color: #e2e8f0;
+    margin-bottom: 16px;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.borrowed-money-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: #2d3748;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.borrowed-money-table th,
+.borrowed-money-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #4a5568;
+}
+
+.borrowed-money-table th {
+    background-color: #1a202c;
+    color: #cbd5e0;
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+}
+
+.borrowed-money-table td {
+    color: #e2e8f0;
+    font-size: 14px;
+}
+
+.borrowed-money-table .amount {
+    font-weight: 600;
+    color: #68d391;
+}
+
+.borrowed-money-table .notes {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.borrowed-money-table .actions {
+    white-space: nowrap;
+}
+
+.borrowed-money-table .actions .btn {
+    margin-right: 4px;
+}
+
+.borrowed-money-table tr:hover {
+    background-color: #1a202c;
+}
+
+.borrowed-money-manager .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    background-color: #2d3748;
+    border-radius: 8px;
+    border: 1px dashed #4a5568;
+}
+
+.borrowed-money-manager .empty-state p {
+    color: #a0aec0;
+    margin: 8px 0;
+}
+
+.borrowed-money-manager .empty-state em {
+    color: #718096;
+    font-size: 13px;
+}
+
+@media (max-width: 768px) {
+    .borrowed-money-manager .summary-section {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 16px;
+    }
+    
+    .borrowed-money-manager .current-total {
+        text-align: center;
+    }
+    
+    .borrowed-money-table {
+        font-size: 12px;
+    }
+    
+    .borrowed-money-table th,
+    .borrowed-money-table td {
+        padding: 8px 6px;
+    }
+    
+    .borrowed-money-table .notes {
+        max-width: 100px;
+    }
 }
