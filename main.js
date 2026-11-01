@@ -14,7 +14,7 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
-      enableRemoteModule: true
+      sandbox: false
     },
     icon: path.join(__dirname, 'src/assets/icons/icon.png'),
     show: false
@@ -174,7 +174,5 @@ ipcMain.handle('get-app-path', () => {
 
 // Prevent new window creation
 app.on('web-contents-created', (event, contents) => {
-  contents.on('new-window', (navigationEvent, targetUrl) => {
-    navigationEvent.preventDefault();
-  });
+  contents.setWindowOpenHandler(() => ({ action: 'deny' }));
 });
