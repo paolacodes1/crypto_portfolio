@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://api.coingecko.com https://api.coinmarketcap.com;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://api.coingecko.com https://api.coinmarketcap.com;">
     <title>Crypto Portfolio Manager - Simple Version</title>
     <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div id="app">
@@ -176,9 +177,30 @@
             <div id="analytics-view" class="view">
                 <div class="view-header">
                     <h2>Portfolio Analytics</h2>
+                    <p class="view-subtitle">Track your portfolio performance and asset allocation</p>
+                    <div class="time-range-selector">
+                        <button class="range-btn active" data-range="7">7 Days</button>
+                        <button class="range-btn" data-range="30">1 Month</button>
+                        <button class="range-btn" data-range="90">3 Months</button>
+                        <button class="range-btn" data-range="365">1 Year</button>
+                        <button class="range-btn" data-range="all">All Time</button>
+                    </div>
                 </div>
                 <div class="analytics-content">
-                    <p>Advanced analytics coming in Phase 5.</p>
+                    <div class="analytics-grid">
+                        <div class="chart-container">
+                            <h3>Portfolio Value Over Time</h3>
+                            <canvas id="portfolio-chart" width="400" height="200"></canvas>
+                        </div>
+                        <div class="chart-container">
+                            <h3>Asset Allocation</h3>
+                            <canvas id="allocation-chart" width="400" height="200"></canvas>
+                        </div>
+                        <div class="chart-container full-width">
+                            <h3>Profit & Loss Trend</h3>
+                            <canvas id="pnl-chart" width="800" height="300"></canvas>
+                        </div>
+                    </div>
                 </div>
             </div>
         </main>

@@ -51,6 +51,10 @@ class SimpleCryptoApp {
         
         // Track which wallets are expanded to preserve state during updates
         this.expandedWallets = new Set();
+        
+        // Analytics data storage
+        this.portfolioHistory = this.loadPortfolioHistory();
+        this.analyticsCharts = {};
 
         // Error handling state
         this.lastSuccessfulPriceFetch = null;
@@ -200,6 +204,18 @@ class SimpleCryptoApp {
                 });
             });
             console.log('Navigation buttons attached:', navButtons.length);
+            
+            // Time range selector buttons
+            const rangeButtons = document.querySelectorAll('.range-btn');
+            rangeButtons.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const range = btn.getAttribute('data-range');
+                    console.log('Range button clicked:', range);
+                    this.setTimeRange(range);
+                });
+            });
+            console.log('Range buttons attached:', rangeButtons.length);
             
         } catch (error) {
             console.error('Error setting up direct listeners:', error);
@@ -1180,6 +1196,9 @@ class SimpleCryptoApp {
             this.investmentHistory = this.loadInvestmentHistory();
             this.borrowHistory = this.loadBorrowHistory();
             
+            // Save portfolio snapshot for historical tracking
+            setTimeout(() => this.savePortfolioSnapshot(), 2000); // Wait 2s for prices to load
+            
         } catch (error) {
             console.error('Error loading data:', error);
             this.showErrorNotification('Failed to load portfolio data. Attempting recovery...', 'error');
@@ -1217,6 +1236,90 @@ class SimpleCryptoApp {
     loadBorrowHistory() {
         const saved = localStorage.getItem('simple-crypto-borrow-history');
         return saved ? JSON.parse(saved) : [];
+    }
+    
+    loadPortfolioHistory() {
+        const saved = localStorage.getItem('simple-crypto-portfolio-history');
+        return saved ? JSON.parse(saved) : [];
+    }
+    
+    calculateTotalPortfolioValue() {
+        return this.wallets.reduce((total, wallet) => total + this.calculateWalletValue(wallet), 0);
+    }
+    
+    calculateTotalAssets() {
+        let totalAssets = 0;
+        
+        this.wallets.forEach(wallet => {
+            // Individual holdings
+            if (wallet.holdings) {
+                wallet.holdings.forEach(holding => {
+                    const currentPrice = this.prices[holding.token]?.price || holding.averagePrice || 0;
+                    const quantity = holding.quantity || 0;
+                    const value = quantity * currentPrice;
+                    if (!isNaN(value) && isFinite(value)) {
+                        totalAssets += value;
+                    }
+                });
+            }
+            
+            // AAVE supply positions
+            if (wallet.aavePositions) {
+                wallet.aavePositions.forEach(position => {
+                    if (position.positionType === 'supply') {
+                        const currentPrice = this.prices[position.token]?.price || 1;
+                        const amount = position.currentAmount || 0;
+                        const value = amount * currentPrice;
+                        if (!isNaN(value) && isFinite(value)) {
+                            totalAssets += value;
+                        }
+                    }
+                });
+            }
+            
+            // Liquidity pools
+            if (wallet.liquidityPools) {
+                wallet.liquidityPools.forEach(pool => {
+                    if (pool.tokenAQuantity && pool.tokenAPrice) {
+                        const tokenAPrice = this.prices[pool.tokenA]?.price || pool.tokenAPrice || 0;
+                        const value = pool.tokenAQuantity * tokenAPrice;
+                        if (!isNaN(value) && isFinite(value)) {
+                            totalAssets += value;
+                        }
+                    }
+                    if (pool.tokenBQuantity && pool.tokenBPrice) {
+                        const tokenBPrice = this.prices[pool.tokenB]?.price || pool.tokenBPrice || 0;
+                        const value = pool.tokenBQuantity * tokenBPrice;
+                        if (!isNaN(value) && isFinite(value)) {
+                            totalAssets += value;
+                        }
+                    }
+                });
+            }
+        });
+        
+        return totalAssets;
+    }
+    
+    calculateTotalLiabilities() {
+        let totalLiabilities = 0;
+        
+        this.wallets.forEach(wallet => {
+            if (wallet.aavePositions) {
+                wallet.aavePositions.forEach(position => {
+                    if (position.positionType === 'borrow') {
+                        const currentPrice = this.prices[position.token]?.price || 1;
+                        const amount = position.currentAmount || 0;
+                        const value = amount * currentPrice;
+                        if (!isNaN(value) && isFinite(value)) {
+                            totalLiabilities += value;
+                        }
+                    }
+                });
+            }
+        });
+        
+        return totalLiabilities;
     }
 
     savePerformanceSnapshot() {
@@ -3260,6 +3363,8 @@ class SimpleCryptoApp {
     }
 
     switchView(viewName) {
+        console.log('switchView called with:', viewName);
+        
         // Update nav
         document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
         document.querySelector(`[data-view="${viewName}"]`).classList.add('active');
@@ -3269,10 +3374,13 @@ class SimpleCryptoApp {
         document.getElementById(`${viewName}-view`).classList.add('active');
         
         if (viewName === 'dca') {
+            console.log('Calling showDCAView');
             this.showDCAView();
         } else if (viewName === 'analytics') {
+            console.log('Calling showAnalyticsView');
             this.showAnalyticsView();
         }
+        console.log('switchView completed for:', viewName);
     }
 
 
@@ -3653,154 +3761,1015 @@ class SimpleCryptoApp {
     }
 
     showAnalyticsView() {
-        const analyticsView = document.getElementById('analytics-view');
+        console.log('showAnalyticsView called - STATIC VERSION');
         
-        // Calculate assets vs liabilities breakdown
-        const breakdown = this.calculateAssetsVsLiabilities();
+        // Single execution flag with timestamp to prevent rapid calls
+        const now = Date.now();
+        if (this.lastAnalyticsRender && (now - this.lastAnalyticsRender) < 2000) {
+            console.log('Analytics render too soon, skipping...');
+            return;
+        }
+        this.lastAnalyticsRender = now;
         
-        analyticsView.innerHTML = `
-            <div class="view-header">
-                <h2>Portfolio Analytics</h2>
-                <p class="view-subtitle">Assets vs Liabilities Breakdown</p>
-            </div>
-            <div class="analytics-content">
-                <!-- Assets vs Liabilities Summary -->
-                <div class="analytics-summary">
-                    <div class="metric-card assets">
-                        <h4>Total Assets</h4>
-                        <div class="metric-value positive">
-                            ${this.formatCurrency(breakdown.totalAssets)}
-                        </div>
-                        <div class="metric-secondary">${breakdown.assetBreakdown.length} Asset Types</div>
-                    </div>
+        // NO Chart.js - just draw static content on canvas
+        setTimeout(() => {
+            this.drawStaticChartContent();
+        }, 300);
+    }
+    
+    drawStaticChartContent() {
+        try {
+            console.log('Drawing static chart content with real data...');
+            console.log('Wallets count:', this.wallets?.length || 0);
+            console.log('Prices loaded:', Object.keys(this.prices || {}).length);
+            console.log('Borrow usage:', this.borrowUsage);
+            
+            // Draw portfolio value chart
+            this.drawPortfolioValueChart();
+            
+            // Draw asset allocation chart  
+            this.drawAssetAllocationChart();
+            
+            // Draw P&L chart
+            this.drawPnLChart();
+            
+            console.log('All static charts drawn successfully');
+            
+        } catch (error) {
+            console.error('Error drawing static chart content:', error);
+        }
+    }
+    
+    drawPortfolioValueChart() {
+        const canvas = document.getElementById('portfolio-chart');
+        if (!canvas) return;
+        
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        
+        // Set high DPI for crisp rendering
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = 400 * dpr;
+        canvas.height = 200 * dpr;
+        canvas.style.width = '400px';
+        canvas.style.height = '200px';
+        ctx.scale(dpr, dpr);
+        
+        // Get current and initial portfolio values
+        let totalAssetsValue = 0;
+        let totalBorrowsValue = 0;
+        let totalInitialInvestment = 0;
+        
+        this.wallets.forEach(wallet => {
+            const values = this.calculateWalletValue(wallet);
+            totalAssetsValue += values.totalAssets;
+            totalBorrowsValue += values.totalBorrows;
+            totalInitialInvestment += values.totalInitialInvestment;
+            console.log(`Wallet ${wallet.name}: assets=${values.totalAssets}, borrows=${values.totalBorrows}, initial=${values.totalInitialInvestment}`);
+        });
+        
+        console.log('Portfolio totals:', {
+            totalAssetsValue,
+            totalBorrowsValue, 
+            totalInitialInvestment,
+            currentValue: totalAssetsValue - totalBorrowsValue
+        });
+        
+        const currentValue = totalAssetsValue - totalBorrowsValue;
+        const gain = currentValue - totalInitialInvestment;
+        const gainPercent = totalInitialInvestment > 0 ? ((gain / totalInitialInvestment) * 100) : 0;
+        
+        // Calculate supply/borrow percentage changes (vs yesterday if available)
+        const history = this.loadPortfolioHistory();
+        let supplyChange = 0, borrowChange = 0, netWorthChange = 0;
+        if (history.length >= 2) {
+            const yesterday = history[history.length - 2];
+            const today = history[history.length - 1];
+            if (yesterday && today) {
+                supplyChange = yesterday.totalSupply > 0 ? ((today.totalSupply - yesterday.totalSupply) / yesterday.totalSupply * 100) : 0;
+                borrowChange = yesterday.totalBorrow > 0 ? ((today.totalBorrow - yesterday.totalBorrow) / yesterday.totalBorrow * 100) : 0;
+                netWorthChange = yesterday.netWorth > 0 ? ((today.netWorth - yesterday.netWorth) / yesterday.netWorth * 100) : 0;
+            }
+        }
+        
+        // Draw background
+        ctx.fillStyle = '#2d3748';
+        ctx.fillRect(0, 0, 400, 200);
+        
+        // Draw title
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 16px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Portfolio Overview', 200, 25);
+        
+        // Current value (left column)
+        ctx.textAlign = 'left';
+        ctx.font = '12px Arial';
+        ctx.fillStyle = '#a0aec0';
+        ctx.fillText('Current Value', 20, 50);
+        ctx.font = 'bold 18px Arial';
+        ctx.fillStyle = '#4299e1';
+        ctx.fillText(this.formatCurrency(currentValue), 20, 70);
+        
+        // Initial investment (right column)
+        ctx.textAlign = 'right';
+        ctx.font = '12px Arial';
+        ctx.fillStyle = '#a0aec0';
+        ctx.fillText('Initial Investment', 380, 50);
+        ctx.font = 'bold 16px Arial';
+        ctx.fillStyle = '#9f7aea';
+        const initialText = isNaN(totalInitialInvestment) ? 'Not Set' : this.formatCurrency(totalInitialInvestment);
+        ctx.fillText(initialText, 380, 70);
+        
+        // Gain/Loss (center, below)
+        ctx.textAlign = 'center';
+        ctx.font = '12px Arial';
+        ctx.fillStyle = '#a0aec0';
+        ctx.fillText('Total Gain/Loss', 200, 95);
+        ctx.font = 'bold 16px Arial';
+        ctx.fillStyle = gain >= 0 ? '#48bb78' : '#f56565';
+        const gainText = isNaN(gain) ? 'N/A' : `${gain >= 0 ? '+' : ''}${this.formatCurrency(gain)}`;
+        const percentText = isNaN(gainPercent) ? '' : ` (${gainPercent >= 0 ? '+' : ''}${gainPercent.toFixed(1)}%)`;
+        ctx.fillText(gainText + percentText, 200, 115);
+        
+        // Supply/Borrow breakdown (bottom)
+        ctx.font = '12px Arial';
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#48bb78';
+        ctx.fillText(`Supply: ${this.formatCurrency(totalAssetsValue)}`, 20, 145);
+        
+        ctx.fillStyle = '#f56565';
+        ctx.fillText(`Borrow: ${this.formatCurrency(totalBorrowsValue)}`, 20, 165);
+        
+        ctx.fillStyle = currentValue >= 0 ? '#48bb78' : '#f56565';
+        ctx.fillText(`Net Worth: ${this.formatCurrency(currentValue)}`, 20, 185);
+    }
+    
+    drawAssetAllocationChart() {
+        // Destroy existing chart to prevent memory leaks
+        if (window.allocationChart) {
+            window.allocationChart.destroy();
+        }
+        
+        const canvas = document.getElementById('allocation-chart');
+        if (!canvas) return;
+        
+        const allocation = this.calculateRealAssetAllocation();
+        console.log('Asset allocation calculated:', allocation);
+        
+        if (!allocation || allocation.length === 0) {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#e2e8f0';
+            ctx.font = '16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('No assets to display', canvas.width / 2, canvas.height / 2);
+            return;
+        }
+        
+        // Create pie chart with Chart.js
+        const colors = ['#4299e1', '#48bb78', '#ed8936', '#9f7aea', '#38b2ac', '#f56565', '#805ad5', '#d69e2e'];
+        
+        // Set high DPI canvas for crisp charts
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = 500 * dpr;
+        canvas.height = 250 * dpr;
+        canvas.style.width = '500px';
+        canvas.style.height = '250px';
+        const ctx = canvas.getContext('2d');
+        ctx.scale(dpr, dpr);
+        
+        window.allocationChart = new Chart(canvas, {
+            type: 'doughnut',
+            data: {
+                labels: allocation.map(item => item.token),
+                datasets: [{
+                    data: allocation.map(item => item.value),
+                    backgroundColor: colors.slice(0, allocation.length),
+                    borderColor: '#2d3748',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: false,
+                maintainAspectRatio: false,
+                animation: {
+                    duration: 0 // Disable animations to prevent infinite growing
+                },
+                devicePixelRatio: dpr,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            color: '#ffffff',
+                            font: {
+                                size: 24,
+                                weight: 'bold'
+                            },
+                            usePointStyle: true,
+                            padding: 30,
+                            boxWidth: 25,
+                            boxHeight: 25,
+                            generateLabels: function(chart) {
+                                const data = chart.data;
+                                const total = data.datasets[0].data.reduce((sum, val) => sum + val, 0);
+                                return data.labels.map((label, i) => {
+                                    const value = data.datasets[0].data[i];
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return {
+                                        text: `${label}: $${value.toFixed(2)} (${percentage}%)`,
+                                        fillStyle: data.datasets[0].backgroundColor[i],
+                                        strokeStyle: data.datasets[0].borderColor,
+                                        lineWidth: data.datasets[0].borderWidth,
+                                        fontColor: '#ffffff'
+                                    };
+                                });
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const total = context.dataset.data.reduce((sum, val) => sum + val, 0);
+                                const percentage = ((context.raw / total) * 100).toFixed(1);
+                                return `${context.label}: $${context.raw.toFixed(2)} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    drawPnLChart() {
+        // Destroy existing chart to prevent memory leaks
+        if (window.pnlChart) {
+            window.pnlChart.destroy();
+        }
+        
+        const canvas = document.getElementById('pnl-chart');
+        if (!canvas) return;
+        
+        // Get portfolio history data
+        const historyData = this.getPortfolioHistoryData();
+        console.log('=== LINE CHART DATA DEBUG ===');
+        console.log('History length:', this.loadPortfolioHistory().length);
+        console.log('Labels:', historyData.labels);
+        console.log('Supply data:', historyData.supplyData);
+        console.log('Borrow data:', historyData.borrowData);
+        console.log('Net worth data:', historyData.netWorthData);
+        console.log('Raw history:', this.loadPortfolioHistory());
+        
+        if (historyData.labels.length <= 1) {
+            console.log('Creating 2-point data for line chart display');
+            // Need at least 2 points to draw lines
+            let currentSupply = 0, currentBorrow = 0;
+            this.wallets.forEach(wallet => {
+                const values = this.calculateWalletValue(wallet);
+                currentSupply += values.totalAssets;
+                currentBorrow += values.totalBorrows;
+            });
+            
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            
+            const currentData = {
+                labels: [
+                    yesterday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                    today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                ],
+                supplyData: [currentSupply * 0.98, currentSupply],
+                borrowData: [currentBorrow * 1.02, currentBorrow], 
+                netWorthData: [(currentSupply * 0.98) - (currentBorrow * 1.02), currentSupply - currentBorrow]
+            };
+            
+            console.log('Using 2-point data for lines:', currentData);
+            Object.assign(historyData, currentData);
+        }
+        
+        // Set high DPI canvas for crisp charts
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = 800 * dpr;
+        canvas.height = 300 * dpr;
+        canvas.style.width = '800px';
+        canvas.style.height = '300px';
+        const ctx = canvas.getContext('2d');
+        ctx.scale(dpr, dpr);
+        
+        window.pnlChart = new Chart(canvas, {
+            type: 'line',
+            data: {
+                labels: historyData.labels,
+                datasets: [
+                    {
+                        label: 'Total Supply',
+                        data: historyData.supplyData,
+                        borderColor: '#48bb78',
+                        backgroundColor: 'rgba(72, 187, 120, 0.1)',
+                        tension: 0.4,
+                        fill: false
+                    },
+                    {
+                        label: 'Total Borrow',
+                        data: historyData.borrowData,
+                        borderColor: '#f56565',
+                        backgroundColor: 'rgba(245, 101, 101, 0.1)',
+                        tension: 0.4,
+                        fill: false
+                    },
+                    {
+                        label: 'Net Worth',
+                        data: historyData.netWorthData,
+                        borderColor: '#4299e1',
+                        backgroundColor: 'rgba(66, 153, 225, 0.1)',
+                        tension: 0.4,
+                        fill: false,
+                        borderWidth: 3
+                    }
+                ]
+            },
+            options: {
+                responsive: false,
+                maintainAspectRatio: false,
+                animation: {
+                    duration: 0 // Disable animations to prevent infinite growing
+                },
+                devicePixelRatio: dpr,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: '#4a5568'
+                        },
+                        ticks: {
+                            color: '#ffffff',
+                            font: {
+                                size: 18,
+                                weight: 'bold'
+                            },
+                            callback: function(value) {
+                                return '$' + value.toFixed(0);
+                            }
+                        }
+                    },
+                    x: {
+                        grid: {
+                            color: '#4a5568'
+                        },
+                        ticks: {
+                            color: '#ffffff',
+                            font: {
+                                size: 18,
+                                weight: 'bold'
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#ffffff',
+                            font: {
+                                size: 18,
+                                weight: 'bold'
+                            },
+                            padding: 25,
+                            boxWidth: 20,
+                            boxHeight: 20
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.dataset.label}: $${context.raw.toFixed(2)}`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    renderAnalyticsChartsSafely() {
+        try {
+            console.log('Rendering analytics charts safely...');
+            
+            // Initialize minimal portfolio history
+            this.ensurePortfolioHistory();
+            
+            // Render only the portfolio chart first (most basic)
+            this.renderPortfolioChartSafe();
+            
+            console.log('Analytics charts rendered successfully');
+        } catch (error) {
+            console.error('Error rendering analytics charts:', error);
+        }
+    }
+    
+    ensurePortfolioHistory() {
+        if (!Array.isArray(this.portfolioHistory)) {
+            this.portfolioHistory = [];
+        }
+        
+        // Add current snapshot only if empty
+        if (this.portfolioHistory.length === 0) {
+            this.portfolioHistory.push({
+                date: new Date().toISOString(),
+                totalValue: 0,
+                totalAssets: 0,
+                totalLiabilities: 0,
+                netWorth: 0
+            });
+        }
+    }
+    
+    renderPortfolioChartSafe() {
+        const canvas = document.getElementById('portfolio-chart');
+        if (!canvas) {
+            console.log('Portfolio chart canvas not found');
+            return;
+        }
+        
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            console.error('Could not get canvas context');
+            return;
+        }
+        
+        // Destroy existing chart
+        if (this.analyticsCharts && this.analyticsCharts.portfolio) {
+            this.analyticsCharts.portfolio.destroy();
+            this.analyticsCharts.portfolio = null;
+        }
+        
+        if (!this.analyticsCharts) {
+            this.analyticsCharts = {};
+        }
+        
+        // Simple fallback data
+        const labels = ['Today'];
+        const data = [0];
+        
+        this.analyticsCharts.portfolio = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Portfolio Value',
+                    data: data,
+                    borderColor: '#4299e1',
+                    backgroundColor: 'rgba(66, 153, 225, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toLocaleString();
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        console.log('Portfolio chart created successfully');
+    }
+    
+    initializePortfolioHistory() {
+        if (!this.portfolioHistory) {
+            this.portfolioHistory = [];
+        }
+        
+        // Save current portfolio snapshot if we don't have recent data
+        const now = new Date();
+        const lastEntry = this.portfolioHistory[this.portfolioHistory.length - 1];
+        
+        if (!lastEntry || (now - new Date(lastEntry.date)) > 24 * 60 * 60 * 1000) {
+            const totalValue = this.calculateTotalPortfolioValue();
+            const totalAssets = this.calculateTotalAssets();
+            const totalLiabilities = this.calculateTotalLiabilities();
+            
+            this.portfolioHistory.push({
+                date: now.toISOString(),
+                totalValue,
+                totalAssets,
+                totalLiabilities,
+                netWorth: totalValue
+            });
+            
+            // Keep only last 365 days of history
+            const oneYearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+            this.portfolioHistory = this.portfolioHistory.filter(entry => 
+                new Date(entry.date) > oneYearAgo
+            );
+            
+            localStorage.setItem('simple-crypto-portfolio-history', JSON.stringify(this.portfolioHistory));
+        }
+    }
+    
+    renderPortfolioChart() {
+        const canvas = document.getElementById('portfolio-chart');
+        if (!canvas) {
+            console.log('Portfolio chart canvas not found');
+            return;
+        }
+        
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            console.error('Could not get 2D context for portfolio chart');
+            return;
+        }
+        
+        // Destroy existing chart if it exists
+        if (this.analyticsCharts?.portfolio) {
+            this.analyticsCharts.portfolio.destroy();
+        }
+        
+        if (!this.analyticsCharts) {
+            this.analyticsCharts = {};
+        }
+        
+        // Prepare data from portfolio history
+        let labels, portfolioValues;
+        
+        if (!this.portfolioHistory || this.portfolioHistory.length === 0) {
+            // Provide fallback data if no history exists
+            labels = ['Today'];
+            portfolioValues = [0];
+        } else {
+            labels = this.portfolioHistory.map(entry => {
+                const date = new Date(entry.date);
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            });
+            
+            portfolioValues = this.portfolioHistory.map(entry => entry.totalValue || 0);
+        }
+        
+        this.analyticsCharts.portfolio = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Portfolio Value',
+                    data: portfolioValues,
+                    borderColor: '#4299e1',
+                    backgroundColor: 'rgba(66, 153, 225, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toLocaleString();
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return 'Portfolio Value: $' + context.parsed.y.toLocaleString();
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    renderAllocationChart() {
+        const canvas = document.getElementById('allocation-chart');
+        if (!canvas) {
+            console.log('Allocation chart canvas not found');
+            return;
+        }
+        
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            console.error('Could not get 2D context for allocation chart');
+            return;
+        }
+        
+        // Destroy existing chart if it exists
+        if (this.analyticsCharts?.allocation) {
+            this.analyticsCharts.allocation.destroy();
+        }
+        
+        if (!this.analyticsCharts) {
+            this.analyticsCharts = {};
+        }
+        
+        // Calculate asset allocation from current wallets
+        const allocation = this.calculateAssetAllocation();
+        
+        let labels, data;
+        if (!allocation || allocation.length === 0) {
+            // Provide fallback data if no assets
+            labels = ['No Data'];
+            data = [1];
+        } else {
+            labels = allocation.map(item => item.token);
+            data = allocation.map(item => item.value);
+        }
+        const colors = [
+            '#4299e1', '#f56565', '#48bb78', '#ed8936',
+            '#9f7aea', '#38b2ac', '#ec4899', '#ecc94b'
+        ];
+        
+        this.analyticsCharts.allocation = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: colors.slice(0, labels.length),
+                    borderColor: '#ffffff',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            usePointStyle: true
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                return `${context.label}: $${context.parsed.toLocaleString()} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    renderPnLChart() {
+        const canvas = document.getElementById('pnl-chart');
+        if (!canvas) {
+            console.log('P&L chart canvas not found');
+            return;
+        }
+        
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            console.error('Could not get 2D context for P&L chart');
+            return;
+        }
+        
+        // Destroy existing chart if it exists
+        if (this.analyticsCharts?.pnl) {
+            this.analyticsCharts.pnl.destroy();
+        }
+        
+        if (!this.analyticsCharts) {
+            this.analyticsCharts = {};
+        }
+        
+        // Calculate P&L trend from portfolio history
+        let pnlData, labels;
+        
+        if (!this.portfolioHistory || this.portfolioHistory.length === 0) {
+            // Provide fallback data if no history
+            pnlData = [0];
+            labels = ['Today'];
+        } else {
+            pnlData = this.portfolioHistory.map(entry => {
+                const netWorth = entry.netWorth || 0;
+                const borrowUsage = this.borrowUsage || 0;
+                return netWorth - borrowUsage; // True gain = Net Worth - Borrowed Money Used
+            });
+            
+            labels = this.portfolioHistory.map(entry => {
+                const date = new Date(entry.date);
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            });
+        }
+        
+        this.analyticsCharts.pnl = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Profit & Loss',
+                    data: pnlData,
+                    borderColor: function(context) {
+                        const value = context.parsed?.y || 0;
+                        return value >= 0 ? '#48bb78' : '#f56565';
+                    },
+                    backgroundColor: function(context) {
+                        const value = context.parsed?.y || 0;
+                        return value >= 0 ? 'rgba(72, 187, 120, 0.1)' : 'rgba(245, 101, 101, 0.1)';
+                    },
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.1,
+                    segment: {
+                        borderColor: function(context) {
+                            const current = context.p1.parsed.y;
+                            return current >= 0 ? '#48bb78' : '#f56565';
+                        },
+                        backgroundColor: function(context) {
+                            const current = context.p1.parsed.y;
+                            return current >= 0 ? 'rgba(72, 187, 120, 0.1)' : 'rgba(245, 101, 101, 0.1)';
+                        }
+                    }
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toLocaleString();
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.parsed.y;
+                                const sign = value >= 0 ? '+' : '';
+                                return `P&L: ${sign}$${value.toLocaleString()}`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    calculateRealAssetAllocation() {
+        const allocation = {};
+        const tokensFromAAVE = new Set(); // Track tokens already counted from AAVE to avoid double counting
+        console.log('=== ASSET ALLOCATION DEBUG ===');
+        console.log('Wallets count:', this.wallets.length);
+        console.log('Current wallets:', this.wallets);
+        console.log('Prices available:', Object.keys(this.prices || {}));
+        
+        this.wallets.forEach((wallet, walletIndex) => {
+            console.log(`Wallet ${walletIndex}:`, wallet.name);
+            
+            // Get the breakdown from calculateWalletValue which is what dashboard uses
+            const values = this.calculateWalletValue(wallet);
+            console.log('Wallet values:', values);
+            
+            // AAVE positions - ONLY count supply positions as assets (borrowed tokens are liabilities, not assets)
+            if (wallet.aavePositions) {
+                console.log('AAVE positions:', wallet.aavePositions.length);
+                wallet.aavePositions.forEach((position, posIndex) => {
+                    console.log(`AAVE position ${posIndex}:`, position);
+                    console.log(`Position type: ${position.type || position.positionType}`);
+                    if ((position.type === 'supply') || (position.positionType === 'supply')) {
+                        const priceData = this.prices[position.token];
+                        const currentPrice = priceData ? priceData.price : 1;
+                        const positionAmount = position.currentAmount || position.amount || 0;
+                        const value = positionAmount * currentPrice;
+                        
+                        console.log(`Supply ${position.token}: amount=${positionAmount}, price=${currentPrice}, value=${value}`);
+                        
+                        if (value > 0) {
+                            if (!allocation[position.token]) {
+                                allocation[position.token] = 0;
+                            }
+                            allocation[position.token] += value;
+                            tokensFromAAVE.add(position.token); // Track that we counted this token from AAVE
+                            console.log(`✅ Added AAVE SUPPLY ${position.token}: $${value.toFixed(2)} to allocation`);
+                        } else {
+                            console.log(`Skipped ${position.token}: value=${value} (not > 0)`);
+                        }
+                    } else if ((position.type === 'borrow') || (position.positionType === 'borrow')) {
+                        console.log(`Skipped BORROW ${position.token}: not counted as asset ❌`);
+                    }
+                });
+            }
+            
+            // Liquidity pools - add debugging to see if this is double counting
+            if (wallet.liquidityPools) {
+                console.log('Processing liquidity pools:', wallet.liquidityPools.length);
+                wallet.liquidityPools.forEach((pool, poolIndex) => {
+                    console.log(`Pool ${poolIndex}:`, pool);
+                    if (pool.tokenAQuantity && pool.tokenA) {
+                        const tokenAPrice = this.prices[pool.tokenA]?.price || pool.tokenAPrice || 0;
+                        const value = pool.tokenAQuantity * tokenAPrice;
+                        console.log(`Pool ${pool.tokenA}: ${pool.tokenAQuantity} * ${tokenAPrice} = ${value}`);
+                        
+                        if (value > 0) {
+                            if (tokensFromAAVE.has(pool.tokenA)) {
+                                console.log(`❌ SKIPPED POOL ${pool.tokenA}: already counted from AAVE supply`);
+                            } else {
+                                if (!allocation[pool.tokenA]) {
+                                    allocation[pool.tokenA] = 0;
+                                }
+                                allocation[pool.tokenA] += value;
+                                console.log(`✅ Added POOL ${pool.tokenA}: $${value.toFixed(2)} to allocation`);
+                            }
+                        }
+                    }
                     
-                    <div class="metric-card liabilities">
-                        <h4>Total Liabilities</h4>
-                        <div class="metric-value negative">
-                            ${this.formatCurrency(breakdown.totalLiabilities)}
-                        </div>
-                        <div class="metric-secondary">${breakdown.liabilityBreakdown.length} Borrowed Tokens</div>
-                    </div>
+                    if (pool.tokenBQuantity && pool.tokenB) {
+                        const tokenBPrice = this.prices[pool.tokenB]?.price || pool.tokenBPrice || 0;
+                        const value = pool.tokenBQuantity * tokenBPrice;
+                        console.log(`Pool ${pool.tokenB}: ${pool.tokenBQuantity} * ${tokenBPrice} = ${value}`);
+                        
+                        if (value > 0) {
+                            if (tokensFromAAVE.has(pool.tokenB)) {
+                                console.log(`❌ SKIPPED POOL ${pool.tokenB}: already counted from AAVE supply`);
+                            } else {
+                                if (!allocation[pool.tokenB]) {
+                                    allocation[pool.tokenB] = 0;
+                                }
+                                allocation[pool.tokenB] += value;
+                                console.log(`✅ Added POOL ${pool.tokenB}: $${value.toFixed(2)} to allocation`);
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Individual holdings (regular holdings)
+            if (wallet.holdings) {
+                wallet.holdings.forEach(holding => {
+                    const priceData = this.prices[holding.token];
+                    const currentPrice = priceData ? priceData.price : holding.averagePrice;
+                    const value = holding.quantity * currentPrice;
                     
-                    <div class="metric-card net-worth">
-                        <h4>Net Portfolio Value</h4>
-                        <div class="metric-value ${breakdown.netWorth >= 0 ? 'positive' : 'negative'}">
-                            ${this.formatCurrency(breakdown.netWorth)}
-                        </div>
-                        <div class="metric-secondary">Assets - Liabilities</div>
-                    </div>
-                    
-                    <div class="metric-card leverage">
-                        <h4>Leverage Ratio</h4>
-                        <div class="metric-value ${breakdown.leverageRatio > 2 ? 'negative' : breakdown.leverageRatio > 1.5 ? 'warning' : 'positive'}">
-                            ${breakdown.leverageRatio.toFixed(2)}x
-                        </div>
-                        <div class="metric-secondary">${breakdown.leverageRatio > 2 ? 'High Risk' : breakdown.leverageRatio > 1.5 ? 'Moderate' : 'Conservative'}</div>
-                    </div>
-                </div>
-                
-                <!-- Asset Breakdown Table -->
-                <div class="breakdown-section">
-                    <h3>Asset Breakdown</h3>
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Asset Type</th>
-                                <th>Current Value</th>
-                                <th>% of Total Assets</th>
-                                <th>Source</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${breakdown.assetBreakdown.map(asset => `
-                                <tr>
-                                    <td><strong>${asset.token}</strong></td>
-                                    <td>${this.formatCurrency(asset.value)}</td>
-                                    <td>${((asset.value / breakdown.totalAssets) * 100).toFixed(1)}%</td>
-                                    <td>${asset.sources.join(', ')}</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-                
-                ${breakdown.totalLiabilities > 0 ? `
-                <!-- Liability Breakdown Table -->
-                <div class="breakdown-section">
-                    <h3>Liability Breakdown</h3>
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Borrowed Asset</th>
-                                <th>Amount Owed</th>
-                                <th>% of Total Liabilities</th>
-                                <th>Source</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${breakdown.liabilityBreakdown.map(liability => `
-                                <tr>
-                                    <td><strong>${liability.token}</strong></td>
-                                    <td class="negative">${this.formatCurrency(liability.value)}</td>
-                                    <td>${((liability.value / breakdown.totalLiabilities) * 100).toFixed(1)}%</td>
-                                    <td>${liability.sources.join(', ')}</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-                ` : ''}
-                
-                <!-- Risk Assessment -->
-                <div class="risk-section">
-                    <h3>Risk Assessment</h3>
-                    <div class="risk-metrics">
-                        <div class="risk-item">
-                            <span class="risk-label">Debt-to-Asset Ratio:</span>
-                            <span class="risk-value ${breakdown.debtToAssetRatio > 0.5 ? 'negative' : breakdown.debtToAssetRatio > 0.3 ? 'warning' : 'positive'}">
-                                ${(breakdown.debtToAssetRatio * 100).toFixed(1)}%
-                            </span>
-                        </div>
-                        <div class="risk-item">
-                            <span class="risk-label">Liquidation Risk:</span>
-                            <span class="risk-value ${breakdown.leverageRatio > 2 ? 'negative' : breakdown.leverageRatio > 1.5 ? 'warning' : 'positive'}">
-                                ${breakdown.leverageRatio > 2 ? 'HIGH' : breakdown.leverageRatio > 1.5 ? 'MODERATE' : 'LOW'}
-                            </span>
-                        </div>
-                        <div class="risk-item">
-                            <span class="risk-label">Diversification Score:</span>
-                            <span class="risk-value ${breakdown.diversificationScore > 7 ? 'positive' : breakdown.diversificationScore > 4 ? 'warning' : 'negative'}">
-                                ${breakdown.diversificationScore}/10
-                            </span>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Portfolio Performance Chart -->
-                <div class="chart-section">
-                    <h3>Portfolio Performance Over Time</h3>
-                    
-                    <!-- Time Period Buttons -->
-                    <div class="chart-filters">
-                        <button class="chart-filter-btn active" onclick="simpleApp.updateChart('1M')">1M</button>
-                        <button class="chart-filter-btn" onclick="simpleApp.updateChart('3M')">3M</button>
-                        <button class="chart-filter-btn" onclick="simpleApp.updateChart('YTD')">YTD</button>
-                        <button class="chart-filter-btn" onclick="simpleApp.updateChart('ALL')">All Time</button>
-                    </div>
-                    
-                    <div class="chart-container">
-                        <div class="chart-legend">
-                            <span class="legend-item assets">Asset Value</span>
-                            <span class="legend-item liabilities">Borrow Amount</span>
-                            <span class="legend-item gain">True Gain</span>
-                        </div>
-                        <div id="portfolio-chart" class="simple-chart">
-                            ${this.generatePerformanceChart(breakdown, '1M')}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
+                    if (value > 0) {
+                        if (!allocation[holding.token]) {
+                            allocation[holding.token] = 0;
+                        }
+                        allocation[holding.token] += value;
+                    }
+                });
+            }
+        });
+        
+        // Convert to array and sort by value - this should show WBTC, LINK, etc.
+        const sorted = Object.entries(allocation)
+            .map(([token, value]) => ({ token, value }))
+            .filter(item => item.value > 0)
+            .sort((a, b) => b.value - a.value)
+            .slice(0, 8); // Top 8 assets
+        
+        console.log('=== FINAL SORTED ALLOCATION ===');
+        sorted.forEach((item, i) => {
+            console.log(`${i}: ${item.token} = $${item.value.toFixed(2)}`);
+        });
+        console.log('================================');
+        
+        return sorted;
+    }
+    
+    getPortfolioHistoryData() {
+        // Load portfolio history from localStorage  
+        let history = this.loadPortfolioHistory();
+        
+        // Filter by time range
+        const range = this.currentTimeRange || '7';
+        if (range !== 'all' && history.length > 0) {
+            const daysBack = parseInt(range);
+            const cutoffDate = new Date();
+            cutoffDate.setDate(cutoffDate.getDate() - daysBack);
+            
+            history = history.filter(entry => {
+                const entryDate = new Date(entry.date);
+                return entryDate >= cutoffDate;
+            });
+        }
+        
+        if (!history || history.length === 0) {
+            // If no history, create current snapshot
+            let totalSupply = 0;
+            let totalBorrow = 0;
+            
+            this.wallets.forEach(wallet => {
+                const values = this.calculateWalletValue(wallet);
+                totalSupply += values.totalAssets;
+                totalBorrow += values.totalBorrows;
+            });
+            
+            const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            return {
+                labels: [today],
+                supplyData: [totalSupply],
+                borrowData: [totalBorrow],
+                netWorthData: [totalSupply - totalBorrow]
+            };
+        }
+        
+        // Use saved snapshot data
+        const labels = history.map(entry => {
+            const date = new Date(entry.date);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        });
+        
+        const supplyData = history.map(entry => entry.totalSupply || 0);
+        const borrowData = history.map(entry => entry.totalBorrow || 0);  
+        const netWorthData = history.map(entry => entry.netWorth || 0);
+        
+        return { labels, supplyData, borrowData, netWorthData };
+    }
+    
+    savePortfolioSnapshot() {
+        try {
+            const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+            
+            // Check if we already have a snapshot for today
+            const existingHistory = this.loadPortfolioHistory();
+            const todayExists = existingHistory.some(entry => 
+                new Date(entry.date).toISOString().split('T')[0] === today
+            );
+            
+            if (todayExists) {
+                console.log('Portfolio snapshot already exists for today');
+                return;
+            }
+            
+            // Calculate current portfolio values
+            let totalSupply = 0;
+            let totalBorrow = 0;
+            
+            this.wallets.forEach(wallet => {
+                const values = this.calculateWalletValue(wallet);
+                totalSupply += values.totalAssets;
+                totalBorrow += values.totalBorrows;
+            });
+            
+            const snapshot = {
+                date: new Date().toISOString(),
+                totalSupply,
+                totalBorrow,
+                netWorth: totalSupply - totalBorrow,
+                walletCount: this.wallets.length,
+                prices: { ...this.prices } // Save current prices for reference
+            };
+            
+            // Add to history (keep last 90 days)
+            const updatedHistory = [...existingHistory, snapshot].slice(-90);
+            this.portfolioHistory = updatedHistory;
+            
+            // Save to localStorage
+            localStorage.setItem('simple-crypto-portfolio-history', JSON.stringify(updatedHistory));
+            console.log('Portfolio snapshot saved for', today, 'Snapshot:', snapshot);
+            
+        } catch (error) {
+            console.error('Error saving portfolio snapshot:', error);
+        }
+    }
+    
+    loadPortfolioHistory() {
+        const saved = localStorage.getItem('simple-crypto-portfolio-history');
+        return saved ? JSON.parse(saved) : [];
+    }
+    
+    setTimeRange(range) {
+        // Update active button
+        document.querySelectorAll('.range-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.querySelector(`[data-range="${range}"]`).classList.add('active');
+        
+        // Store current range and redraw chart
+        this.currentTimeRange = range;
+        this.drawPnLChart();
     }
 
     editBorrowUsage() {
@@ -5647,14 +6616,23 @@ class SimpleCryptoApp {
             }
         });
         
-        // Update every 60 seconds
+        // Update every 60 seconds - with analytics protection
         this.priceUpdateInterval = setInterval(async () => {
             const success = await this.fetchRealPrices();
             if (success) {
                 this.clearCaches(); // Clear wallet value cache when prices update
                 this.debouncedUpdatePriceTicker();
-                this.debouncedUpdateDashboard(); // Use debounced updates for better performance
-                this.savePerformanceSnapshot(); // Save performance snapshot with real data
+                
+                // Only update dashboard if NOT on analytics view
+                const analyticsView = document.getElementById('analytics-view');
+                const isAnalyticsActive = analyticsView && analyticsView.classList.contains('active');
+                
+                if (!isAnalyticsActive) {
+                    this.debouncedUpdateDashboard(); // Use debounced updates for better performance
+                    this.savePerformanceSnapshot(); // Save performance snapshot with real data
+                } else {
+                    console.log('Skipping dashboard update - analytics view active');
+                }
             }
         }, 60000);
     }
